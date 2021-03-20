@@ -1,10 +1,30 @@
 import './App.css';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet';
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { uniq } from 'lodash';
 import { Form } from 'react-bootstrap';
+import {useDropzone} from 'react-dropzone'
 const jsonData = require('./data/1.json');
+
+function MyDropzone() {
+  const onDrop = useCallback(acceptedFiles => {
+    // Do something with the files
+    console.log(acceptedFiles);
+  }, [])
+  const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
+
+  return (
+    <div {...getRootProps()}>
+      <input {...getInputProps()} />
+      {
+        isDragActive ?
+          <p>Drop the files here ...</p> :
+          <p>Drag 'n' drop some files here, or click to select files</p>
+      }
+    </div>
+  )
+}
 
 function getRandom() {
     return Math.random() * 0.001 * (Math.round(Math.random()) ? 1 : -1)
@@ -46,6 +66,8 @@ function App() {
 
     return (
         <div className="App">
+
+            <MyDropzone />
 
             <MapContainer center={[45.523064, -122.676483]} zoom={10} scrollWheelZoom={false} style={{ height: '80vh', margin: '0', padding: '0' }}>
                 <TileLayer
