@@ -1,14 +1,14 @@
 import './App.css';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet';
-import React, { useState, useCallback, useContext } from 'react';
+import React, { useCallback } from 'react';
 import { uniq } from 'lodash';
-import { Form } from 'react-bootstrap';
 import { useDropzone } from 'react-dropzone'
-const jsonData = require('./data/1.json');
+import { Box, ChakraProvider, Checkbox, CheckboxGroup, Flex, VStack } from "@chakra-ui/react"
+import { useStore } from './store';
 
 function MyDropzone() {
-    const ctx = useContext(dataContext);
+    const setPoints = useStore(state => state.setPoints);
     const onDrop = useCallback(acceptedFiles => {
         // Do something with the files
         acceptedFiles.forEach((file) => {
@@ -17,7 +17,7 @@ function MyDropzone() {
                 const text = reader.result;
                 // do whatever you want with the file contents
                 console.log(text);
-                ctx.setData(JSON.parse(text));
+                setPoints(JSON.parse(text));
             };
             reader.onabort = () => console.log('file reading was aborted');
             reader.onerror = () => console.log('file reading has failed');
@@ -39,110 +39,122 @@ function MyDropzone() {
     )
 }
 
-function getRandom() {
-    return Math.random() * 0.001 * (Math.round(Math.random()) ? 1 : -1)
+function getTypes(point) {
+    return point['Type(s)'].replaceAll(' ', '').split(',');
 }
 
-function SliderControl({ data, setTypeFilter }) {
+function SliderControl() {
+
+    const state = useStore();
+
     let types = [];
 
-    const [checked, setChecked] = useState([]);
+    const points = [];
 
-    data.forEach((point) => {
-        const t = point['Type(s)'].split(', ');
+    if (state.typeFilter.length > 0) {
+
+
+        state.points.forEach((point) => {
+            const t = getTypes(point);
+
+            const b = state.typeFilter.every((ct) => t.includes(ct));
+            if (b) {
+                points.push(point);
+            }
+        });
+    } else {
+        points.push(...state.points);
+    }
+
+    points.forEach((point) => {
+        const t = getTypes(point)
         types.push(...t);
     });
+
+    types.push(...state.typeFilter);
 
     types = uniq(types);
 
     return (
-        <Form>
-            <div className="mb-3">
-                {types.map((type) => {
-                    return (
-                        <Form.Check
-                            inline
-                            type='checkbox'
-                            id={`default-${type}`}
-                            label={type}
-                            onChange={(e) => {
-                                if (checked.includes(type)) {
-                                    setChecked(checked.filter((val) => val !== type));
-                                    setTypeFilter(checked.filter((val) => val !== type));
+        <div>
+            <VStack>
+                <p>Selected</p>
+            </VStack>
+            <VStack>
+                <CheckboxGroup >
+
+                    {types.sort().map((type) => {
+                        const checked = state.typeFilter.includes(type);
+                        console.log('checked, filter, type', checked, state.typeFilter, `'${type}'`);
+                        return (
+                            <Checkbox isChecked={checked} onChange={(e) => {
+                                if (checked) {
+                                    state.setTypeFilter(state.typeFilter.filter((val) => val !== type));
                                 } else {
-                                    setChecked([...checked, type]);
-                                    setTypeFilter([...checked, type]);
+                                    state.setTypeFilter(uniq([...state.typeFilter, type]));
                                 }
-                            }}
-                        />
-                    )
-                })}
-            </div>
-        </Form>
+                            }}>{type}</Checkbox>
+                        )
+                    })}
+                </CheckboxGroup>
+            </VStack>
+
+        </div>
     );
 }
-
-const dataContext = React.createContext({
-    data: undefined,
-    setData: undefined
-});
 
 function App() {
 
     L.Icon.Default.imagePath = "images/"
 
-    const [filter, setFilter] = useState([]);
 
-    const [data, setData] = useState({});
-
-    const context = {
-        data,
-        setData
-    }
+    const { points, typeFilter } = useStore();
 
     return (
-        <div className="App">
+        <ChakraProvider>
+            <div className="App">
 
-            <dataContext.Provider value={context}>
                 <MyDropzone />
 
-                {context.data !== undefined && (
-                    <div>
 
-                        <MapContainer center={[45.523064, -122.676483]} zoom={10} scrollWheelZoom={true} style={{ height: '80vh', margin: '0', padding: '0' }}>
+                <Flex color="black" maxH='80vh'>
+
+                    <Box w='full'>
+
+                        <MapContainer center={[45.523064, -122.676483]} zoom={10} scrollWheelZoom={true} style={{ margin: '0', padding: '0' }}>
                             <TileLayer
                                 attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
-                            {context.data &&
-                                context.data?.map?.((point) => {
+                            {points.map?.((point) => {
 
-                                    const types = point['Type(s)'].replaceAll(' ', '').split(',');
-                                    console.log(filter, types);
-                                    if (filter.length > 0) {
-                                        if (!filter.every((val) => types.includes(val))) {
-                                            return;
-                                        }
+                                const types = getTypes(point);
+                                if (typeFilter.length > 0) {
+                                    if (!typeFilter.every((val) => types.includes(val))) {
+                                        return;
                                     }
+                                }
 
-                                    const pos = point.Location.split('/');
-                                    // const ranPos = [parseFloat(pos[0]) + getRandom(), parseFloat(pos[1]) + getRandom()];
-                                    // console.log(pos, ranPos);
-                                    return (
-                                        <Marker position={pos} key={point.Location + Math.random()}>
-                                            <Popup>
-                                                {point['Type(s)']}
-                                            </Popup>
-                                        </Marker>
-                                    )
-                                })
+                                const pos = point.Location.split('/');
+                                // const ranPos = [parseFloat(pos[0]) + getRandom(), parseFloat(pos[1]) + getRandom()];
+                                // console.log(pos, ranPos);
+                                return (
+                                    <Marker position={pos} key={point.Location + Math.random()}>
+                                        <Popup>
+                                            {point['Type(s)']}
+                                        </Popup>
+                                    </Marker>
+                                )
+                            })
                             }
                         </MapContainer>
-                        <SliderControl data={jsonData} setTypeFilter={setFilter} />
-                    </div>
-                )}
-            </dataContext.Provider>
-        </div>
+                    </Box>
+                    <Box w='256px' overflowY='scroll'>
+                        <SliderControl />
+                    </Box>
+                </Flex>
+            </div>
+        </ChakraProvider>
     );
 }
 
