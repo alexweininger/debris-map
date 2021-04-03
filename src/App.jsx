@@ -4,8 +4,9 @@ import L from 'leaflet';
 import React, { useCallback } from 'react';
 import { uniq } from 'lodash';
 import { useDropzone } from 'react-dropzone'
-import { Box, ChakraProvider, Checkbox, CheckboxGroup, Flex, VStack } from "@chakra-ui/react"
+import { Box, ChakraProvider, Checkbox, CheckboxGroup, Flex, VStack, Grid } from "@chakra-ui/react"
 import { useStore } from './store';
+import Select from 'react-select'
 
 function MyDropzone() {
     const setPoints = useStore(state => state.setPoints);
@@ -48,6 +49,16 @@ function SliderControl() {
     const state = useStore();
 
     let types = [];
+    let brands = ["caprisun", "mcdonalds"];
+    let materials = ["aluminum", "cardboard", "cloth", "glass", "metal", "paper", "plastic", "styrofoam", "wood"];
+
+    const customStyles = {
+        option: (provided, state) => ({
+            ...provided,
+            color: state.isSelected ? 'red' : 'blue',
+            fontSize: 12
+        })
+    }
 
     const points = [];
 
@@ -74,31 +85,56 @@ function SliderControl() {
     types.push(...state.typeFilter);
 
     types = uniq(types);
-
+    console.log(types);
     return (
         <div>
-            <VStack>
-                <p>Selected</p>
-            </VStack>
-            <VStack>
-                <CheckboxGroup >
-
-                    {types.sort().map((type) => {
-                        const checked = state.typeFilter.includes(type);
-                        console.log('checked, filter, type', checked, state.typeFilter, `'${type}'`);
-                        return (
-                            <Checkbox isChecked={checked} onChange={(e) => {
-                                if (checked) {
-                                    state.setTypeFilter(state.typeFilter.filter((val) => val !== type));
-                                } else {
-                                    state.setTypeFilter(uniq([...state.typeFilter, type]));
-                                }
-                            }}>{type}</Checkbox>
-                        )
-                    })}
-                </CheckboxGroup>
-            </VStack>
-
+            <Grid templateColumns="repeat(3, 1fr)" gap={6} style={{width: '50%'}}>
+            <Select
+                isMulti
+                options={types.filter(t => materials.includes(t)).sort().map((type) =>  {
+                    return {
+                        label: type, value: type
+                    }
+                })}
+                maxMenuHeight={100}
+                styles={customStyles}
+                style={{width: '100%'}}
+                placeholder="Select material(s):"
+                onChange={(selected) => {
+                    state.setTypeFilter(selected.map(val => val.value));
+                }}
+            />
+            <Select
+                isMulti
+                options={types.filter(t => {
+                    return !materials.includes(t) && !brands.includes(t);
+                }).sort().map((type) =>  {
+                    return {
+                        label: type, value: type
+                    }
+                })}
+                maxMenuHeight={100}
+                style={{width: '100%'}}
+                placeholder="Select object(s):"
+                onChange={(selected) => {
+                    state.setTypeFilter(selected.map(val => val.value));
+                }}
+            />
+            <Select
+                isMulti
+                options={types.filter(t => brands.includes(t)).sort().map((type) =>  {
+                    return {
+                        label: type, value: type
+                    }
+                })}
+                maxMenuHeight={100}
+                style={{width: '100%'}}
+                placeholder="Select brand(s):"
+                onChange={(selected) => {
+                    state.setTypeFilter(selected.map(val => val.value));
+                }}
+            />
+            </Grid>
         </div>
     );
 }
@@ -116,12 +152,11 @@ function App() {
 
                 <MyDropzone />
 
-
                 <Flex color="black" maxH='80vh'>
 
                     <Box w='full'>
 
-                        <MapContainer center={[45.523064, -122.676483]} zoom={10} scrollWheelZoom={true} style={{ margin: '0', padding: '0' }}>
+                        <MapContainer center={[45.523064, -122.676483]} zoom={10} scrollWheelZoom={true} style={{ margin: '0', padding: '0', maxHeight: '60vh' }}>
                             <TileLayer
                                 attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -149,10 +184,14 @@ function App() {
                             }
                         </MapContainer>
                     </Box>
-                    <Box w='256px' overflowY='scroll'>
-                        <SliderControl />
-                    </Box>
+                    {/*<Box w='256px' overflowY='scroll'>*/}
+                    {/*    <SliderControl />*/}
+                    {/*</Box>*/}
                 </Flex>
+                <div style={{minHeight: 300}}>
+                    <SliderControl />
+                </div>
+
             </div>
         </ChakraProvider>
     );

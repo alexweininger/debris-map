@@ -41,3 +41,7 @@
     width: 100wh;
     height: 100vh;
 }
+
+.react-select__option {
+    color: red;
+}
