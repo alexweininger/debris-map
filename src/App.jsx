@@ -4,9 +4,10 @@ import L from 'leaflet';
 import React, { useCallback } from 'react';
 import { uniq } from 'lodash';
 import { useDropzone } from 'react-dropzone'
-import { Box, ChakraProvider, Checkbox, CheckboxGroup, Flex, VStack, Grid } from "@chakra-ui/react"
+import { Box, ChakraProvider, Flex, Grid } from "@chakra-ui/react"
 import { useStore } from './store';
 import Select from 'react-select'
+const parse = require('csv-parse');
 
 function MyDropzone() {
     const setPoints = useStore(state => state.setPoints);
@@ -16,9 +17,17 @@ function MyDropzone() {
             const reader = new FileReader();
             reader.onload = () => {
                 const text = reader.result;
-                // do whatever you want with the file contents
-                console.log(text);
-                setPoints(JSON.parse(text));
+                const isCsv = file.path.endsWith('.csv');
+
+                if (isCsv) {
+                    parse(text, { columns: true }, (err, output) => {
+                        setPoints(output);
+                    });
+                    return;
+                } else {
+                    alert('Sorry, only .csv files are supported.');
+                    return;
+                }
             };
             reader.onabort = () => console.log('file reading was aborted');
             reader.onerror = () => console.log('file reading has failed');
@@ -41,7 +50,11 @@ function MyDropzone() {
 }
 
 function getTypes(point) {
-    return point['Type(s)'].replaceAll(' ', '').split(',');
+    return point['Tags'].replaceAll(' ', '').split(',');
+}
+
+function countPointsOfType(points, type) {
+    return points.filter((point) => getTypes(point).includes(type)).length;
 }
 
 function SliderControl() {
@@ -55,9 +68,17 @@ function SliderControl() {
     const customStyles = {
         option: (provided, state) => ({
             ...provided,
-            color: state.isSelected ? 'red' : 'blue',
-            fontSize: 12
-        })
+            fontSize: 12,
+            padding: 0,
+        }),
+        multiValue: (provided, state) => ({
+            ...provided,
+            fontSize: '12px'
+        }),
+        placeholder: (provided, state) => ({
+            ...provided,
+            fontSize: '12px'
+        }),
     }
 
     const points = [];
@@ -86,54 +107,59 @@ function SliderControl() {
 
     types = uniq(types);
     console.log(types);
+    const materialOptions = types.filter(t => materials.includes(t)).sort();
+    const objectOptions = types.filter(t => {
+        return !materials.includes(t) && !brands.includes(t);
+    }).sort();
+    const brandOptions = types.filter(t => brands.includes(t)).sort();
     return (
         <div>
-            <Grid templateColumns="repeat(3, 1fr)" gap={6} style={{width: '50%'}}>
-            <Select
-                isMulti
-                options={types.filter(t => materials.includes(t)).sort().map((type) =>  {
-                    return {
-                        label: type, value: type
-                    }
-                })}
-                maxMenuHeight={100}
-                styles={customStyles}
-                style={{width: '100%'}}
-                placeholder="Select material(s):"
-                onChange={(selected) => {
-                    state.setTypeFilter(selected.map(val => val.value));
-                }}
-            />
-            <Select
-                isMulti
-                options={types.filter(t => {
-                    return !materials.includes(t) && !brands.includes(t);
-                }).sort().map((type) =>  {
-                    return {
-                        label: type, value: type
-                    }
-                })}
-                maxMenuHeight={100}
-                style={{width: '100%'}}
-                placeholder="Select object(s):"
-                onChange={(selected) => {
-                    state.setTypeFilter(selected.map(val => val.value));
-                }}
-            />
-            <Select
-                isMulti
-                options={types.filter(t => brands.includes(t)).sort().map((type) =>  {
-                    return {
-                        label: type, value: type
-                    }
-                })}
-                maxMenuHeight={100}
-                style={{width: '100%'}}
-                placeholder="Select brand(s):"
-                onChange={(selected) => {
-                    state.setTypeFilter(selected.map(val => val.value));
-                }}
-            />
+            <Grid templateColumns="repeat(3, 1fr)" gap={6} style={{ width: '50%' }}>
+                <Select
+                    isMulti
+                    options={materialOptions.map((type) => {
+                        return {
+                            label: `${type} (${countPointsOfType(points, type)})`, value: type
+                        }
+                    })}
+                    maxMenuHeight={120}
+                    styles={customStyles}
+                    style={{ width: '100%' }}
+                    placeholder={`Select material(s) - ${materialOptions.length} total`}
+                    onChange={(selected) => {
+                        state.setTypeFilter(selected.map(val => val.value));
+                    }}
+                />
+                <Select
+                    isMulti
+                    options={objectOptions.map((type) => {
+                        return {
+                            label: `${type} (${countPointsOfType(points, type)})`, value: type
+                        }
+                    })}
+                    styles={customStyles}
+                    maxMenuHeight={120}
+                    style={{ width: '100%' }}
+                    placeholder={`Select objects(s) - ${objectOptions.length} total`}
+                    onChange={(selected) => {
+                        state.setTypeFilter(selected.map(val => val.value));
+                    }}
+                />
+                <Select
+                    isMulti
+                    options={brandOptions.map((type) => {
+                        return {
+                            label: `${type} (${countPointsOfType(points, type)})`, value: type
+                        }
+                    })}
+                    styles={customStyles}
+                    maxMenuHeight={120}
+                    style={{ width: '100%' }}
+                    placeholder={`Select brands(s) - ${brandOptions.length} total`}
+                    onChange={(selected) => {
+                        state.setTypeFilter(selected.map(val => val.value));
+                    }}
+                />
             </Grid>
         </div>
     );
@@ -165,18 +191,17 @@ function App() {
 
                                 const types = getTypes(point);
                                 if (typeFilter.length > 0) {
+                                    console.log(types);
                                     if (!typeFilter.every((val) => types.includes(val))) {
                                         return;
                                     }
                                 }
 
-                                const pos = point.Location.split('/');
-                                // const ranPos = [parseFloat(pos[0]) + getRandom(), parseFloat(pos[1]) + getRandom()];
-                                // console.log(pos, ranPos);
+                                const pos = point['Location (Lat / Long)'].split('/');
                                 return (
-                                    <Marker position={pos} key={point.Location + Math.random()}>
+                                    <Marker position={pos} key={point['Location (Lat / Long)'] + Math.random()}>
                                         <Popup>
-                                            {point['Type(s)']}
+                                            {point['Tags']}
                                         </Popup>
                                     </Marker>
                                 )
@@ -184,11 +209,8 @@ function App() {
                             }
                         </MapContainer>
                     </Box>
-                    {/*<Box w='256px' overflowY='scroll'>*/}
-                    {/*    <SliderControl />*/}
-                    {/*</Box>*/}
                 </Flex>
-                <div style={{minHeight: 300}}>
+                <div style={{ minHeight: 300 }}>
                     <SliderControl />
                 </div>
 
