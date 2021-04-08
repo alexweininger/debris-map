@@ -107,14 +107,17 @@ function SliderControl() {
 
     types = uniq(types);
     console.log(types);
+
     const materialOptions = types.filter(t => materials.includes(t)).sort();
     const objectOptions = types.filter(t => {
         return !materials.includes(t) && !brands.includes(t);
     }).sort();
     const brandOptions = types.filter(t => brands.includes(t)).sort();
+    const otherOptions = [];
+    
     return (
         <div>
-            <Grid templateColumns="repeat(3, 1fr)" gap={6} style={{ width: '50%' }}>
+            <Grid templateColumns="repeat(4, 1fr)" gap={6} style={{ width: '60%' }}>
                 <Select
                     isMulti
                     options={materialOptions.map((type) => {
@@ -140,7 +143,7 @@ function SliderControl() {
                     styles={customStyles}
                     maxMenuHeight={120}
                     style={{ width: '100%' }}
-                    placeholder={`Select objects(s) - ${objectOptions.length} total`}
+                    placeholder={`Select object(s) - ${objectOptions.length} total`}
                     onChange={(selected) => {
                         state.setTypeFilter(selected.map(val => val.value));
                     }}
@@ -155,10 +158,17 @@ function SliderControl() {
                     styles={customStyles}
                     maxMenuHeight={120}
                     style={{ width: '100%' }}
-                    placeholder={`Select brands(s) - ${brandOptions.length} total`}
+                    placeholder={`Select brand(s) - ${brandOptions.length} total`}
                     onChange={(selected) => {
                         state.setTypeFilter(selected.map(val => val.value));
                     }}
+                />
+                <Select
+                    isMulti
+                    styles={customStyles}
+                    maxMenuHeight={120}
+                    style={{ width: '100%' }}
+                    placeholder={`Select other type(s) - ${otherOptions.length} total`}
                 />
             </Grid>
         </div>
