@@ -63,6 +63,10 @@ function SliderControl() {
 
     let types = [];
     let brands = ["caprisun", "mcdonalds"];
+    let objects = ["aluminumfoil", "bag", "bottlecap", "butt", "can", "candy", "candywrapper", "cigarette", "cigarettebutt",
+        "clotheshanger", "cup", "drink", "drinkcarton", "drinkpouch", "facemask", "foil", "fruitsnacks", "hanger", "knife",
+        "lighter", "lotteryticket", "medicalfacemask", "packingpeanut", "piece", "plasticbag", "plasticknife", "plastictube",
+        "receipt", "rubberband", "sodalid", "sticker", "straw", "wrapper"];
     let materials = ["aluminum", "cardboard", "cloth", "glass", "metal", "paper", "plastic", "styrofoam", "wood"];
 
     const customStyles = {
@@ -107,14 +111,18 @@ function SliderControl() {
 
     types = uniq(types);
     console.log(types);
+
     const materialOptions = types.filter(t => materials.includes(t)).sort();
-    const objectOptions = types.filter(t => {
-        return !materials.includes(t) && !brands.includes(t);
-    }).sort();
     const brandOptions = types.filter(t => brands.includes(t)).sort();
+    const objectOptions = types.filter(t => objects.includes(t)).sort();
+
+    const otherOptions = types.filter(t => {
+        return !materials.includes(t) && !brands.includes(t) && !objects.includes(t);
+    }).sort();;
+    
     return (
         <div>
-            <Grid templateColumns="repeat(3, 1fr)" gap={6} style={{ width: '50%' }}>
+            <Grid templateColumns="repeat(4, 1fr)" gap={6} style={{ width: '60%' }}>
                 <Select
                     isMulti
                     options={materialOptions.map((type) => {
@@ -140,7 +148,7 @@ function SliderControl() {
                     styles={customStyles}
                     maxMenuHeight={120}
                     style={{ width: '100%' }}
-                    placeholder={`Select objects(s) - ${objectOptions.length} total`}
+                    placeholder={`Select object(s) - ${objectOptions.length} total`}
                     onChange={(selected) => {
                         state.setTypeFilter(selected.map(val => val.value));
                     }}
@@ -155,7 +163,22 @@ function SliderControl() {
                     styles={customStyles}
                     maxMenuHeight={120}
                     style={{ width: '100%' }}
-                    placeholder={`Select brands(s) - ${brandOptions.length} total`}
+                    placeholder={`Select brand(s) - ${brandOptions.length} total`}
+                    onChange={(selected) => {
+                        state.setTypeFilter(selected.map(val => val.value));
+                    }}
+                />
+                <Select
+                    isMulti
+                    options={otherOptions.map((type) => {
+                        return {
+                            label: `${type} (${countPointsOfType(points, type)})`, value: type
+                        }
+                    })}
+                    styles={customStyles}
+                    maxMenuHeight={120}
+                    style={{ width: '100%' }}
+                    placeholder={`Select other type(s) - ${otherOptions.length} total`}
                     onChange={(selected) => {
                         state.setTypeFilter(selected.map(val => val.value));
                     }}
