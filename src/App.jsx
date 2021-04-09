@@ -7,6 +7,7 @@ import { useDropzone } from 'react-dropzone'
 import { Box, ChakraProvider, Flex, Grid } from "@chakra-ui/react"
 import { useStore } from './store';
 import Select from 'react-select'
+import MarkerClusterGroup from 'react-leaflet-markercluster';
 const parse = require('csv-parse');
 
 function MyDropzone() {
@@ -119,7 +120,7 @@ function SliderControl() {
     const otherOptions = types.filter(t => {
         return !materials.includes(t) && !brands.includes(t) && !objects.includes(t);
     }).sort();;
-    
+
     return (
         <div>
             <Grid templateColumns="repeat(4, 1fr)" gap={6} style={{ width: '60%' }}>
@@ -205,31 +206,35 @@ function App() {
 
                     <Box w='full'>
 
-                        <MapContainer center={[45.523064, -122.676483]} zoom={10} scrollWheelZoom={true} style={{ margin: '0', padding: '0', maxHeight: '60vh' }}>
+                        <MapContainer className="markercluster-map" center={[45.523064, -122.676483]} zoom={4}
+                            maxZoom={18} scrollWheelZoom={true} style={{ margin: '0', padding: '0', maxHeight: '60vh' }}>
                             <TileLayer
                                 attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
-                            {points.map?.((point) => {
+                            <MarkerClusterGroup>
 
-                                const types = getTypes(point);
-                                if (typeFilter.length > 0) {
-                                    console.log(types);
-                                    if (!typeFilter.every((val) => types.includes(val))) {
-                                        return;
+                                {points.map?.((point) => {
+
+                                    const types = getTypes(point);
+                                    if (typeFilter.length > 0) {
+                                        console.log(types);
+                                        if (!typeFilter.every((val) => types.includes(val))) {
+                                            return;
+                                        }
                                     }
-                                }
 
-                                const pos = point['Location (Lat / Long)'].split('/');
-                                return (
-                                    <Marker position={pos} key={point['Location (Lat / Long)'] + Math.random()}>
-                                        <Popup>
-                                            {point['Tags']}
-                                        </Popup>
-                                    </Marker>
-                                )
-                            })
-                            }
+                                    const pos = point['Location (Lat / Long)'].split('/');
+                                    return (
+                                        <Marker position={pos} key={point['Location (Lat / Long)'] + Math.random()}>
+                                            <Popup>
+                                                {point['Tags']}
+                                            </Popup>
+                                        </Marker>
+                                    )
+                                })}
+                            </MarkerClusterGroup>
+
                         </MapContainer>
                     </Box>
                 </Flex>
