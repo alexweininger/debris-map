@@ -58,12 +58,11 @@ function countPointsOfType(points, type) {
     return points.filter((point) => getTypes(point).includes(type)).length;
 }
 
-function SliderControl({dates}) {
+function SliderControl() {
 
     const state = useStore();
 
     let types = [];
-
     let brands = ["caprisun", "mcdonalds"];
     let objects = ["aluminumfoil", "bag", "bottlecap", "butt", "can", "candy", "candywrapper", "cigarette", "cigarettebutt",
         "clotheshanger", "cup", "drink", "drinkcarton", "drinkpouch", "facemask", "foil", "fruitsnacks", "hanger", "knife",
@@ -88,11 +87,13 @@ function SliderControl({dates}) {
     }
 
     const points = [];
+
     if (state.typeFilter.length > 0) {
 
 
         state.points.forEach((point) => {
             const t = getTypes(point);
+
             const b = state.typeFilter.every((ct) => t.includes(ct));
             if (b) {
                 points.push(point);
@@ -104,8 +105,6 @@ function SliderControl({dates}) {
 
     points.forEach((point) => {
         const t = getTypes(point)
-        const date = new Date(point['Date']);
-        dates.push(date.toDateString());
         types.push(...t);
     });
 
@@ -113,7 +112,6 @@ function SliderControl({dates}) {
 
     types = uniq(types);
     console.log(types);
-    console.log(dates);
 
     const materialOptions = types.filter(t => materials.includes(t)).sort();
     const brandOptions = types.filter(t => brands.includes(t)).sort();
@@ -197,7 +195,6 @@ function App() {
 
 
     const { points, typeFilter } = useStore();
-    let dates = [];
 
     return (
         <ChakraProvider>
@@ -216,7 +213,9 @@ function App() {
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
                             <MarkerClusterGroup>
+
                                 {points.map?.((point) => {
+
                                     const types = getTypes(point);
                                     if (typeFilter.length > 0) {
                                         console.log(types);
@@ -233,15 +232,14 @@ function App() {
                                             </Popup>
                                         </Marker>
                                     )
-                                })
-                                }
+                                })}
                             </MarkerClusterGroup>
 
                         </MapContainer>
                     </Box>
                 </Flex>
                 <div style={{ minHeight: 300 }}>
-                    <SliderControl dates={dates}/>
+                    <SliderControl />
                 </div>
 
             </div>
