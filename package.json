@@ -27,6 +27,8 @@
     "react-leaflet-markercluster": "^3.0.0-rc1",
     "react-scripts": "4.0.2",
     "react-select": "^4.3.0",
+    "react-time-range-slider": "^1.1.2",
+    "react-timeline-range-slider": "^1.4.1",
     "web-vitals": "^1.0.1",
     "zustand": "^3.3.3"
   },

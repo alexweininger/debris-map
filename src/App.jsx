@@ -7,6 +7,8 @@ import { useDropzone } from 'react-dropzone'
 import { Box, ChakraProvider, Flex, Grid } from "@chakra-ui/react"
 import { useStore } from './store';
 import Select from 'react-select'
+import TimeRange from 'react-timeline-range-slider'
+import TimeRangeSlider from 'react-time-range-slider';
 import MarkerClusterGroup from 'react-leaflet-markercluster';
 const parse = require('csv-parse');
 
@@ -58,11 +60,19 @@ function countPointsOfType(points, type) {
     return points.filter((point) => getTypes(point).includes(type)).length;
 }
 
+function getDates(point) {
+    return new Date(point['Date']).toDateString();
+}
+
+function getPointsWithDate(points, date) {
+    return points.filter((point) => getDates(point).includes(date)).length;
+}
 function SliderControl() {
 
     const state = useStore();
 
     let types = [];
+    let dates = [];
     let brands = ["caprisun", "mcdonalds"];
     let objects = ["aluminumfoil", "bag", "bottlecap", "butt", "can", "candy", "candywrapper", "cigarette", "cigarettebutt",
         "clotheshanger", "cup", "drink", "drinkcarton", "drinkpouch", "facemask", "foil", "fruitsnacks", "hanger", "knife",
@@ -89,11 +99,8 @@ function SliderControl() {
     const points = [];
 
     if (state.typeFilter.length > 0) {
-
-
         state.points.forEach((point) => {
             const t = getTypes(point);
-
             const b = state.typeFilter.every((ct) => t.includes(ct));
             if (b) {
                 points.push(point);
@@ -105,13 +112,20 @@ function SliderControl() {
 
     points.forEach((point) => {
         const t = getTypes(point)
+        const date = new Date(point['Date']);
+        dates.push(date.toDateString())
         types.push(...t);
     });
 
     types.push(...state.typeFilter);
 
     types = uniq(types);
+    dates = uniq(dates);
+
+    const sortedDates = dates.sort((date1, date2) => date2.valueOf() - date1.valueOf());
+
     console.log(types);
+    console.log(sortedDates);
 
     const materialOptions = types.filter(t => materials.includes(t)).sort();
     const brandOptions = types.filter(t => brands.includes(t)).sort();
@@ -184,6 +198,21 @@ function SliderControl() {
                         state.setTypeFilter(selected.map(val => val.value));
                     }}
                 />
+                <Select
+                    isMulti
+                    options={dates.map((date) => {
+                        return {
+                            label: `${date} (${getPointsWithDate(points, date)})`, value: date
+                        }
+                    })}
+                    styles={customStyles}
+                    maxMenuHeight={120}
+                    style={{ width: '100%' }}
+                    placeholder={`Select day(s) - ${dates.length} total`}
+                    onChange={(selected) => {
+                        
+                    }}
+                />
             </Grid>
         </div>
     );
@@ -192,7 +221,6 @@ function SliderControl() {
 function App() {
 
     L.Icon.Default.imagePath = "images/"
-
 
     const { points, typeFilter } = useStore();
 
