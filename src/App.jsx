@@ -1,13 +1,16 @@
 import './App.css';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { uniq } from 'lodash';
 import { useDropzone } from 'react-dropzone'
 import { Box, ChakraProvider, Flex, Grid } from "@chakra-ui/react"
 import { useStore } from './store';
 import Select from 'react-select'
+import TimeRange from 'react-timeline-range-slider'
+import TimeRangeSlider from 'react-time-range-slider';
 import MarkerClusterGroup from 'react-leaflet-markercluster';
+
 const parse = require('csv-parse');
 
 function MyDropzone() {
@@ -58,11 +61,21 @@ function countPointsOfType(points, type) {
     return points.filter((point) => getTypes(point).includes(type)).length;
 }
 
-function SliderControl() {
+function getDate(point) {
+    return new Date(point['Date']).toDateString();
+}
 
-    const state = useStore();
+function getPointsWithDate(points, date) {
+    return points.filter((point) => getDate(point) === date).length;
+}
+function TagFilter() {
+    const typeFilter = useStore((s) => s.typeFilter);
+    const setTypeFilter = useStore((s) => s.setTypeFilter);
+    const setDateFilter = useStore((s) => s.setDateFilter);
+    const allPoints = useStore((s) => s.points);
 
     let types = [];
+    let dates = [];
     let brands = ["caprisun", "mcdonalds"];
     let objects = ["aluminumfoil", "bag", "bottlecap", "butt", "can", "candy", "candywrapper", "cigarette", "cigarettebutt",
         "clotheshanger", "cup", "drink", "drinkcarton", "drinkpouch", "facemask", "foil", "fruitsnacks", "hanger", "knife",
@@ -87,20 +100,18 @@ function SliderControl() {
     }
 
     const points = [];
+    const pointsFilteredByDate = [];
 
-    if (state.typeFilter.length > 0) {
-
-
-        state.points.forEach((point) => {
+    if (typeFilter.length > 0) {
+        allPoints.forEach((point) => {
             const t = getTypes(point);
-
-            const b = state.typeFilter.every((ct) => t.includes(ct));
+            const b = typeFilter.every((ct) => t.includes(ct));
             if (b) {
                 points.push(point);
             }
         });
     } else {
-        points.push(...state.points);
+        points.push(...allPoints);
     }
 
     points.forEach((point) => {
@@ -108,9 +119,10 @@ function SliderControl() {
         types.push(...t);
     });
 
-    types.push(...state.typeFilter);
+    types.push(...typeFilter);
 
     types = uniq(types);
+    dates = uniq(dates);
     console.log(types);
 
     const materialOptions = types.filter(t => materials.includes(t)).sort();
@@ -136,7 +148,7 @@ function SliderControl() {
                     style={{ width: '100%' }}
                     placeholder={`Select material(s) - ${materialOptions.length} total`}
                     onChange={(selected) => {
-                        state.setTypeFilter(selected.map(val => val.value));
+                        setTypeFilter(selected.map(val => val.value));
                     }}
                 />
                 <Select
@@ -151,7 +163,7 @@ function SliderControl() {
                     style={{ width: '100%' }}
                     placeholder={`Select object(s) - ${objectOptions.length} total`}
                     onChange={(selected) => {
-                        state.setTypeFilter(selected.map(val => val.value));
+                        setTypeFilter(selected.map(val => val.value));
                     }}
                 />
                 <Select
@@ -166,7 +178,7 @@ function SliderControl() {
                     style={{ width: '100%' }}
                     placeholder={`Select brand(s) - ${brandOptions.length} total`}
                     onChange={(selected) => {
-                        state.setTypeFilter(selected.map(val => val.value));
+                        setTypeFilter(selected.map(val => val.value));
                     }}
                 />
                 <Select
@@ -181,7 +193,7 @@ function SliderControl() {
                     style={{ width: '100%' }}
                     placeholder={`Select other type(s) - ${otherOptions.length} total`}
                     onChange={(selected) => {
-                        state.setTypeFilter(selected.map(val => val.value));
+                        setTypeFilter(selected.map(val => val.value));
                     }}
                 />
             </Grid>
@@ -189,12 +201,61 @@ function SliderControl() {
     );
 }
 
+function SliderControl() {
+    const points = useStore((s) => s.points);
+    let setDateFilter = useStore((s) => s.setDateFilter);
+    let dates = [];
+    points.forEach((point) => {
+        const date = new Date(point['Date']);
+        dates.push(date.toDateString());
+    });
+    dates = uniq(dates).sort((a, b) => {
+        return new Date(a) - new Date(b);
+    });
+    console.log(dates);
+    const firstDate = new Date(dates[0]);
+    const lastDate = new Date(dates[dates.length - 1]);
+
+    const [selectedInterval, setSelectedInterval] = useState([firstDate, lastDate]);
+    return (
+        <div>
+        <Select
+            isMulti
+            options={dates.map((date) => {
+                return {
+                    label: `${date} (${getPointsWithDate(points, date)})`, value: date
+                }
+            })}
+            //styles={customStyles}
+            maxMenuHeight={120}
+            style={{ width: '100%' }}
+            placeholder={`Select day(s) - ${dates.length} total`}
+            onChange={(selected) => {
+                setDateFilter(selected.map(val => val.value));
+            }}
+        />
+        <TimeRange
+            ticksNumber={dates.length}
+            selectedInterval={selectedInterval}
+            timelineInterval={[firstDate, lastDate]}
+            onUpdateCallback={function () {
+
+            }}
+            onChangeCallback={(interval) => {
+                console.log(interval);
+                //setDateFilter(interval);
+                //setSelectedInterval(interval);
+            }}
+        />
+        </div>
+    );
+
+}
 function App() {
 
     L.Icon.Default.imagePath = "images/"
 
-
-    const { points, typeFilter } = useStore();
+    const { points, typeFilter, dateFilter } = useStore();
 
     return (
         <ChakraProvider>
@@ -224,6 +285,15 @@ function App() {
                                         }
                                     }
 
+                                    if(dateFilter.length > 0) {
+                                        const date = new Date(point['Date']);
+                                        console.log(date.toDateString());
+                                        if(!dateFilter.includes(date.toDateString())) {
+                                            return;
+                                        }
+                                    }
+
+                                    console.log(dateFilter);
                                     const pos = point['Location (Lat / Long)'].split('/');
                                     return (
                                         <Marker position={pos} key={point['Location (Lat / Long)'] + Math.random()}>
@@ -239,6 +309,7 @@ function App() {
                     </Box>
                 </Flex>
                 <div style={{ minHeight: 300 }}>
+                    <TagFilter />
                     <SliderControl />
                 </div>
 
