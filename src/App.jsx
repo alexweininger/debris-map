@@ -1,55 +1,157 @@
 import './App.css';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet';
 import React, { useCallback, useState } from 'react';
 import { uniq } from 'lodash';
 import { useDropzone } from 'react-dropzone'
-import { Box, ChakraProvider, Flex, Grid } from "@chakra-ui/react"
+import { Box, ChakraProvider, Grid, Modal, ModalContent, Text, ModalOverlay, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Button } from "@chakra-ui/react"
 import { useStore } from './store';
 import Select from 'react-select'
-import TimeRange from 'react-timeline-range-slider'
-import TimeRangeSlider from 'react-time-range-slider';
-import MarkerClusterGroup from 'react-leaflet-markercluster';
+import { Map } from './Map';
+import exifr from 'exifr/dist/full.esm.mjs'
+import { ImgModal } from './ImgModal';
 
 const parse = require('csv-parse');
 
+function isCsv(file) {
+    return file.path.endsWith('.csv');
+};
+
+const imgFileTypes = ['.jpeg', '.jpg', '.png'];
+
+function isImage(file) {
+    return imgFileTypes.some((type) => {
+        return file.path.endsWith(type);
+    })
+}
+
 function MyDropzone() {
     const setPoints = useStore(state => state.setPoints);
+    const [csvModal, setCsvModal] = useState(false);
+    const [imgModal, setImgModal] = useState(false);
+    const [data, setData] = useState();
+    const [images, setImages] = useState(undefined);
+    const [file, setFile] = useState();
+    const [exifData, setExifData] = useState(undefined);
+    const [done, setDone] = useState(false);
+    const showPoints = useStore(s => s.setShowPoints);
+
+    const onClose = () => {
+        setCsvModal(false);
+        setImgModal(false);
+    }
+
+    const onAccept = (data, tags) => {
+        if (tags !== undefined) {
+            console.log(data, tags);
+            const combined = data.map((imgData, index) => {
+                return {
+                    Date: new Date(imgData.DateTimeOriginal ?? new Date()) || new Date(),
+                    'Location (Lat / Long)': `${imgData.latitude}/${imgData.longitude}`,
+                    Tags: tags[index].map((v) => v.label).join(', '),
+                    'Image URL': images[index]
+                }
+            });
+            console.log('combined', combined);
+            setPoints(combined);
+        } else {
+            setPoints(data);
+        }
+        onClose();
+    }
+
+    const afterLoad = (file) => {
+        if (csvModal) {
+            return;
+        }
+        if (isCsv(file)) {
+
+        } else {
+            setImgModal(true);
+
+        }
+
+        setDone(true);
+    }
+
     const onDrop = useCallback(acceptedFiles => {
+        const imageData = [];
+        const aggExifData = [];
         // Do something with the files
         acceptedFiles.forEach((file) => {
+            setFile(file);
             const reader = new FileReader();
             reader.onload = () => {
                 const text = reader.result;
-                const isCsv = file.path.endsWith('.csv');
 
-                if (isCsv) {
+                if (isCsv(file)) {
+                    setCsvModal(true);
                     parse(text, { columns: true }, (err, output) => {
-                        setPoints(output);
+                        setData(output);
                     });
                     return;
+                } else if (isImage(file)) {
+                    exifr.parse(text)
+                        .then(output => {
+                            aggExifData.push(output);
+                        }).catch(err => {
+                            aggExifData.push({});
+                        });
+
+                    imageData.push(text);
                 } else {
-                    alert('Sorry, only .csv files are supported.');
+                    alert('Sorry, only .csv or image files are supported.');
                     return;
                 }
             };
             reader.onabort = () => console.log('file reading was aborted');
             reader.onerror = () => console.log('file reading has failed');
 
-            reader.readAsText(file);
-        })
-    }, [])
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
+            if (isCsv(file)) {
+
+                reader.readAsText(file);
+            } else {
+
+                reader.readAsDataURL(file);
+            }
+            setImages(imageData);
+            setExifData(aggExifData);
+            afterLoad(file);
+        });
+
+    }, []);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
     return (
         <div {...getRootProps()}>
-            <input {...getInputProps()} />
+            <input {...getInputProps()} accept='.csv, .jpeg, .jpg, .png' />
             {
                 isDragActive ?
                     <p>Drop the files here ...</p> :
                     <p>Drag 'n' drop some files here, or click to select files</p>
             }
-        </div>
+            <Modal isOpen={csvModal} onClose={(e) => onClose()}>
+                <ModalOverlay />
+                <ModalContent>
+                    <ModalHeader>Add data from CSV</ModalHeader>
+                    <ModalCloseButton />
+                    <ModalBody>
+                        <Text>
+                            Loaded <strong>{data?.length}</strong> debris from file {file?.path}.
+                        </Text>
+                    </ModalBody>
+
+                    <ModalFooter>
+                        <Button colorScheme="red" mr={3} onClick={() => onClose()}>
+                            Cancel
+                        </Button>
+                        <Button colorScheme="blue" onClick={() => onAccept(data)}>Process</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+
+            <ImgModal exifData={exifData} images={images} isOpen={imgModal} onAccept={onAccept} onClose={onClose} />
+        </div >
     )
 }
 
@@ -71,7 +173,6 @@ function getPointsWithDate(points, date) {
 function TagFilter() {
     const typeFilter = useStore((s) => s.typeFilter);
     const setTypeFilter = useStore((s) => s.setTypeFilter);
-    const setDateFilter = useStore((s) => s.setDateFilter);
     const allPoints = useStore((s) => s.points);
 
     let types = [];
@@ -219,43 +320,44 @@ function SliderControl() {
     const [selectedInterval, setSelectedInterval] = useState([firstDate, lastDate]);
     return (
         <div>
-        <Select
-            isMulti
-            options={dates.map((date) => {
-                return {
-                    label: `${date} (${getPointsWithDate(points, date)})`, value: date
-                }
-            })}
-            //styles={customStyles}
-            maxMenuHeight={120}
-            style={{ width: '100%' }}
-            placeholder={`Select day(s) - ${dates.length} total`}
-            onChange={(selected) => {
-                setDateFilter(selected.map(val => val.value));
-            }}
-        />
-        <TimeRange
-            ticksNumber={dates.length}
-            selectedInterval={selectedInterval}
-            timelineInterval={[firstDate, lastDate]}
-            onUpdateCallback={function () {
+            <Select
+                isMulti
+                options={dates.map((date) => {
+                    return {
+                        label: `${date} (${getPointsWithDate(points, date)})`, value: date
+                    }
+                })}
+                //styles={customStyles}
+                maxMenuHeight={220}
+                style={{ width: '100%' }}
+                placeholder={`Select day(s) - ${dates.length} total`}
+                onChange={(selected) => {
+                    setDateFilter(selected.map(val => val.value));
+                }}
+            />
+            {/* <TimeRange
+                ticksNumber={dates.length}
+                selectedInterval={selectedInterval}
+                timelineInterval={[firstDate, lastDate]}
+                onUpdateCallback={function () {
 
-            }}
-            onChangeCallback={(interval) => {
-                console.log(interval);
-                //setDateFilter(interval);
-                //setSelectedInterval(interval);
-            }}
-        />
+                }}
+                onChangeCallback={(interval) => {
+                    console.log(interval);
+                    //setDateFilter(interval);
+                    //setSelectedInterval(interval);
+                }}
+            /> */}
         </div>
     );
 
 }
 function App() {
 
-    L.Icon.Default.imagePath = "images/"
+    L.Icon.Default.imagePath = "images/";
 
-    const { points, typeFilter, dateFilter } = useStore();
+    const setLoading = useStore(s => s.setMapLoading);
+
 
     return (
         <ChakraProvider>
@@ -263,55 +365,19 @@ function App() {
 
                 <MyDropzone />
 
-                <Flex color="black" maxH='80vh'>
+                <Map setLoading={setLoading} />
 
-                    <Box w='full'>
+                <Box minH={300} w='full' minW='full'>
+                    <br />
 
-                        <MapContainer className="markercluster-map" center={[45.523064, -122.676483]} zoom={4}
-                            maxZoom={18} scrollWheelZoom={true} style={{ margin: '0', padding: '0', maxHeight: '60vh' }}>
-                            <TileLayer
-                                attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
-                            <MarkerClusterGroup>
-
-                                {points.map?.((point) => {
-
-                                    const types = getTypes(point);
-                                    if (typeFilter.length > 0) {
-                                        console.log(types);
-                                        if (!typeFilter.every((val) => types.includes(val))) {
-                                            return;
-                                        }
-                                    }
-
-                                    if(dateFilter.length > 0) {
-                                        const date = new Date(point['Date']);
-                                        console.log(date.toDateString());
-                                        if(!dateFilter.includes(date.toDateString())) {
-                                            return;
-                                        }
-                                    }
-
-                                    console.log(dateFilter);
-                                    const pos = point['Location (Lat / Long)'].split('/');
-                                    return (
-                                        <Marker position={pos} key={point['Location (Lat / Long)'] + Math.random()}>
-                                            <Popup>
-                                                {point['Tags']}
-                                            </Popup>
-                                        </Marker>
-                                    )
-                                })}
-                            </MarkerClusterGroup>
-
-                        </MapContainer>
-                    </Box>
-                </Flex>
-                <div style={{ minHeight: 300 }}>
                     <TagFilter />
-                    <SliderControl />
-                </div>
+                    <br />
+                    <Box maxW='300'>
+
+                        <SliderControl />
+                    </Box>
+                </Box>
+
 
             </div>
         </ChakraProvider>
