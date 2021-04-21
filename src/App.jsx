@@ -8,6 +8,9 @@ import { useStore } from './store';
 import Select from 'react-select'
 import { Map } from './Map';
 import exifr from 'exifr/dist/full.esm.mjs'
+import DayPickerInput from 'react-day-picker/DayPickerInput'
+import 'react-day-picker/lib/style.css';
+import { formatDate, parseDate } from 'react-day-picker/moment';
 import { ImgModal } from './ImgModal';
 
 const parse = require('csv-parse');
@@ -303,51 +306,36 @@ function TagFilter() {
 }
 
 function SliderControl() {
-    const points = useStore((s) => s.points);
+    let dateFilter = useStore((s) => s.dateFilter);
     let setDateFilter = useStore((s) => s.setDateFilter);
-    let dates = [];
-    points.forEach((point) => {
-        const date = new Date(point['Date']);
-        dates.push(date.toDateString());
-    });
-    dates = uniq(dates).sort((a, b) => {
-        return new Date(a) - new Date(b);
-    });
-    console.log(dates);
-    const firstDate = new Date(dates[0]);
-    const lastDate = new Date(dates[dates.length - 1]);
+    let newDateFilter = [];
 
-    const [selectedInterval, setSelectedInterval] = useState([firstDate, lastDate]);
     return (
         <div>
-            <Select
-                isMulti
-                options={dates.map((date) => {
-                    return {
-                        label: `${date} (${getPointsWithDate(points, date)})`, value: date
-                    }
-                })}
-                //styles={customStyles}
-                maxMenuHeight={220}
-                style={{ width: '100%' }}
-                placeholder={`Select day(s) - ${dates.length} total`}
-                onChange={(selected) => {
-                    setDateFilter(selected.map(val => val.value));
-                }}
-            />
-            {/* <TimeRange
-                ticksNumber={dates.length}
-                selectedInterval={selectedInterval}
-                timelineInterval={[firstDate, lastDate]}
-                onUpdateCallback={function () {
+            <label for="first">From: </label>
+            <input type="date" id="first"/>
+            <br/>
+            <label for="last">To: </label>
+            <input type="date" id="last"/>
+            <br/>
+            <button onClick={function() {
+                var first = document.getElementById("first").value;
+                var last = document.getElementById("last").value;
+                var date1 = new Date(first);
+                var date2 = new Date(last);
+                console.log(date1.toDateString());
+                console.log(date2.toDateString());
+                var newDateFilter = [];
 
-                }}
-                onChangeCallback={(interval) => {
-                    console.log(interval);
-                    //setDateFilter(interval);
-                    //setSelectedInterval(interval);
-                }}
-            /> */}
+                while(date1.getTime() < date2.getTime()) {
+                    var dateToAdd = new Date(date1).toDateString();
+                    newDateFilter.push(dateToAdd);
+                    date1.setDate(date1.getDate() + 1);
+                }
+                newDateFilter.push(date2.toDateString());
+
+                setDateFilter(newDateFilter);
+            }}>Submit</button>
         </div>
     );
 
