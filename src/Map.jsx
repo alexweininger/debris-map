@@ -74,8 +74,6 @@ export const Map = ({ setLoading }) => {
 
     const dateFilter = useStore(s => s.dateFilter);
     const typeFilter = useStore(s => s.typeFilter);
-    const firstDate = useStore((s) => s.firstDate);
-    const lastDate = useStore((s) => s.lastDate);
     const points = useStore(s => s.points);
 
     return (

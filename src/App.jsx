@@ -305,6 +305,21 @@ function TagFilter() {
     );
 }
 
+function getToday() {
+    let currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth() + 1;
+    let currentDay = new Date().getDate();
+
+    if(currentMonth < 10) {
+        currentMonth = "0" + currentMonth;
+    }
+    if(currentDay < 10) {
+        currentDay = "0" + currentDay;
+    }
+
+    return currentYear + "-" + currentMonth + "-" + currentDay;
+}
+
 function SliderControl() {
     let dateFilter = useStore((s) => s.dateFilter);
     let setDateFilter = useStore((s) => s.setDateFilter);
@@ -316,7 +331,7 @@ function SliderControl() {
             <input type="date" id="first"/>
             <br/>
             <label for="last">To: </label>
-            <input type="date" id="last"/>
+            <input type="date" id="last" max={getToday()}/>
             <br/>
             <button onClick={function() {
                 var first = document.getElementById("first").value;
