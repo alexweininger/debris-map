@@ -305,6 +305,21 @@ function TagFilter() {
     );
 }
 
+function getToday() {
+    let currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth() + 1;
+    let currentDay = new Date().getDate();
+
+    if(currentMonth < 10) {
+        currentMonth = "0" + currentMonth;
+    }
+    if(currentDay < 10) {
+        currentDay = "0" + currentDay;
+    }
+
+    return currentYear + "-" + currentMonth + "-" + currentDay;
+}
+
 function SliderControl() {
     let dateFilter = useStore((s) => s.dateFilter);
     let setDateFilter = useStore((s) => s.setDateFilter);
@@ -313,10 +328,40 @@ function SliderControl() {
     return (
         <div>
             <label for="first">From: </label>
-            <input type="date" id="first"/>
+            <input type="date" id="first" onChange={function() {
+                let minValue = document.getElementById("first").value;
+                let minDate = new Date(minValue);
+                let minYear = minDate.getFullYear();
+                let minMonth = minDate.getMonth() + 1;
+                let minDay = minDate.getDate() + 1;
+
+                if(minMonth < 10) {
+                    minMonth = "0" + minMonth;
+                }
+                if(minDay < 10) {
+                    minDay = "0" + minDay;
+                }
+
+                document.getElementById("last").min = minYear + "-" + minMonth + "-" + minDay;
+            }}/>
             <br/>
             <label for="last">To: </label>
-            <input type="date" id="last"/>
+            <input type="date" id="last" max={getToday()} onChange={function() {
+                let maxValue = document.getElementById("last").value;
+                let maxDate = new Date(maxValue);
+                let maxYear = maxDate.getFullYear();
+                let maxMonth = maxDate.getMonth() + 1;
+                let maxDay = maxDate.getDate() + 1;
+
+                if(maxMonth < 10) {
+                    maxMonth = "0" + maxMonth;
+                }
+                if(maxDay < 10) {
+                    maxDay = "0" + maxDay;
+                }
+
+                document.getElementById("first").max = maxYear + "-" + maxMonth + "-" + maxDay;
+            }}/>
             <br/>
             <button onClick={function() {
                 var first = document.getElementById("first").value;
@@ -325,6 +370,11 @@ function SliderControl() {
                 var date2 = new Date(last);
                 console.log(date1.toDateString());
                 console.log(date2.toDateString());
+
+                if(date1.toDateString() == "Invalid Date" || date2.toDateString() == "Invalid Date") {
+                    return;
+                }
+
                 var newDateFilter = [];
 
                 while(date1.getTime() < date2.getTime()) {
@@ -335,11 +385,12 @@ function SliderControl() {
                 newDateFilter.push(date2.toDateString());
 
                 setDateFilter(newDateFilter);
-            }}>Submit</button>
+            }}>Filter by Dates</button>
         </div>
     );
 
 }
+
 function App() {
 
     L.Icon.Default.imagePath = "images/";
