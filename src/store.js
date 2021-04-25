@@ -1,11 +1,35 @@
 import create from 'zustand';
 
-export const useStore = create(set => ({
+export const useStore = create((set, get) => ({
     typeFilter: [],
     dateFilter: [],
+    materialFilter: [],
+    objectFilter: [],
+    brandFilter: [],
+    otherFilter: [],
     points: [],
     setPoints: (points) => set(state => ({ points: [...state.points, ...points] })),
-    setTypeFilter: (filter) => set(state => ({ typeFilter: filter })),
+    setMaterialFilter: (filter) => {
+        console.log(filter);
+        set(state => ({materialFilter: filter}));
+    },
+    setObjectFilter: (filter) => {
+        console.log(filter);
+        set(state => ({objectFilter: filter}));
+    },
+    setBrandFilter: (filter) => {
+        console.log(filter);
+        set(state => ({brandFilter: filter}));
+    },
+    setOtherFilter: (filter) => {
+        console.log(filter);
+        set(state => ({otherFilter: filter}));
+    },
+    addFilter: (tag) => {
+        const newTypeFilter = get().typeFilter;
+        newTypeFilter.push(tag);
+        set(state => ({typeFilter: newTypeFilter}))
+    },
     setDateFilter: (filter) => set(state => ({ dateFilter: filter })),
     complete: [],
     removeComplete: (point) => set(state => {

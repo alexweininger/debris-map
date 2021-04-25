@@ -47,8 +47,10 @@ function MyDropzone() {
         if (tags !== undefined) {
             console.log(data, tags);
             const combined = data.map((imgData, index) => {
+                let date = new Date(imgData.DateTimeOriginal ?? new Date()) || new Date();
+                date.setDate(date.getDate() + 1);
                 return {
-                    Date: new Date(imgData.DateTimeOriginal ?? new Date()) || new Date(),
+                    Date: date,
                     'Location (Lat / Long)': `${imgData.latitude}/${imgData.longitude}`,
                     Tags: tags[index].map((v) => v.label).join(', '),
                     'Image URL': images[index]
@@ -174,12 +176,21 @@ function getPointsWithDate(points, date) {
     return points.filter((point) => getDate(point) === date).length;
 }
 function TagFilter() {
-    const typeFilter = useStore((s) => s.typeFilter);
     const setTypeFilter = useStore((s) => s.setTypeFilter);
     const allPoints = useStore((s) => s.points);
+    const setMaterialFilter = useStore((s) => s.setMaterialFilter);
+    const setObjectFilter = useStore((s) => s.setObjectFilter);
+    const setBrandFilter = useStore((s) => s.setBrandFilter);
+    const setOtherFilter = useStore((s) => s.setOtherFilter);
 
+    let materialFilter = useStore((s) => s.materialFilter);
+    let objectFilter = useStore((s) => s.objectFilter);
+    let brandFilter = useStore((s) => s.brandFilter);
+    let otherFilter = useStore((s) => s.otherFilter);
     let types = [];
     let dates = [];
+    const typeFilter = [...materialFilter, ...objectFilter, ...brandFilter, ...otherFilter];
+
     let brands = ["caprisun", "mcdonalds"];
     let objects = ["aluminumfoil", "bag", "bottlecap", "butt", "can", "candy", "candywrapper", "cigarette", "cigarettebutt",
         "clotheshanger", "cup", "drink", "drinkcarton", "drinkpouch", "facemask", "foil", "fruitsnacks", "hanger", "knife",
@@ -252,7 +263,7 @@ function TagFilter() {
                     style={{ width: '100%' }}
                     placeholder={`Select material(s) - ${materialOptions.length} total`}
                     onChange={(selected) => {
-                        setTypeFilter(selected.map(val => val.value));
+                        setMaterialFilter(selected.map(val => val.value));
                     }}
                 />
                 <Select
@@ -267,7 +278,7 @@ function TagFilter() {
                     style={{ width: '100%' }}
                     placeholder={`Select object(s) - ${objectOptions.length} total`}
                     onChange={(selected) => {
-                        setTypeFilter(selected.map(val => val.value));
+                        setObjectFilter(selected.map(val => val.value));
                     }}
                 />
                 <Select
@@ -282,7 +293,7 @@ function TagFilter() {
                     style={{ width: '100%' }}
                     placeholder={`Select brand(s) - ${brandOptions.length} total`}
                     onChange={(selected) => {
-                        setTypeFilter(selected.map(val => val.value));
+                        setBrandFilter(selected.map(val => val.value));
                     }}
                 />
                 <Select
@@ -297,7 +308,7 @@ function TagFilter() {
                     style={{ width: '100%' }}
                     placeholder={`Select other type(s) - ${otherOptions.length} total`}
                     onChange={(selected) => {
-                        setTypeFilter(selected.map(val => val.value));
+                        setOtherFilter(selected.map(val => val.value));
                     }}
                 />
             </Grid>
@@ -328,7 +339,7 @@ function SliderControl() {
     return (
         <div>
             <label for="first">From: </label>
-            <input type="date" id="first" onChange={function() {
+            <input type="date" id="first" max={getToday()} onChange={function() {
                 let minValue = document.getElementById("first").value;
                 let minDate = new Date(minValue);
                 let minYear = minDate.getFullYear();
@@ -368,22 +379,27 @@ function SliderControl() {
                 var last = document.getElementById("last").value;
                 var date1 = new Date(first);
                 var date2 = new Date(last);
-                console.log(date1.toDateString());
-                console.log(date2.toDateString());
 
-                if(date1.toDateString() == "Invalid Date" || date2.toDateString() == "Invalid Date") {
+                if(date1.toDateString().localeCompare("Invalid Date") == 0 ||
+                    date2.toDateString().localeCompare("Invalid Date") == 0 || date1.getTime() > date2.getTime()) {
                     return;
                 }
 
+                console.log(date1.toDateString());
+                console.log(date2.toDateString());
+
                 var newDateFilter = [];
+                newDateFilter.push(date1.toDateString());
+                date1.setDate(date1.getDate() + 1);
 
                 while(date1.getTime() < date2.getTime()) {
-                    var dateToAdd = new Date(date1).toDateString();
+                    var dateToAdd = date1.toDateString();
                     newDateFilter.push(dateToAdd);
                     date1.setDate(date1.getDate() + 1);
                 }
-                newDateFilter.push(date2.toDateString());
 
+                newDateFilter.push(date2.toDateString());
+                console.log(newDateFilter);
                 setDateFilter(newDateFilter);
             }}>Filter by Dates</button>
         </div>

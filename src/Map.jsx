@@ -13,6 +13,8 @@ const MarkerContent = ({ point }) => {
     const imgSrc = point['Image URL'];
     const types = getTypes(point);
     const removeComplete = useStore(s => s.removeComplete);
+    let date = new Date(point['Date']);
+    date.setDate(date.getDate() + 1);
     return (
         <Stack direction='column'>
             <Stack direction="row">
@@ -24,7 +26,7 @@ const MarkerContent = ({ point }) => {
                 )}
             </Stack>
             <Text fontSize='sm'>
-                Date: {new Date(point['Date']).toDateString()}
+                Date: {date.toDateString()}
             </Text>
             <div>
 
@@ -42,13 +44,13 @@ const MarkerContent = ({ point }) => {
                     }}>
                         {img ? 'Hide image' : 'Show image'}
                     </Button>
-                    <Button size='xs' onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        removeComplete(point);
-                    }}>
-                        Show similar
-                        </Button>
+                    {/*<Button size='xs' onClick={(e) => {*/}
+                    {/*    e.preventDefault();*/}
+                    {/*    e.stopPropagation();*/}
+                    {/*    removeComplete(point);*/}
+                    {/*}}>*/}
+                    {/*    Show similar*/}
+                    {/*    </Button>*/}
                 </Stack>
 
             </div>
@@ -73,7 +75,11 @@ const CustomMarker = ({ point }) => {
 export const Map = ({ setLoading }) => {
 
     const dateFilter = useStore(s => s.dateFilter);
-    const typeFilter = useStore(s => s.typeFilter);
+    let materialFilter = useStore((s) => s.materialFilter);
+    let objectFilter = useStore((s) => s.objectFilter);
+    let brandFilter = useStore((s) => s.brandFilter);
+    let otherFilter = useStore((s) => s.otherFilter);
+    const typeFilter = [...materialFilter, ...objectFilter, ...brandFilter, ...otherFilter];
     const points = useStore(s => s.points);
 
     return (
@@ -123,7 +129,7 @@ export const Map = ({ setLoading }) => {
 
             </Flex>
             <Text>
-                {points?.length}
+                Total: {points?.length}
             </Text>
         </Stack>
 
