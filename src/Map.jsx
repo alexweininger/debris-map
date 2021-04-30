@@ -14,7 +14,6 @@ const MarkerContent = ({ point }) => {
     const types = getTypes(point);
     const removeComplete = useStore(s => s.removeComplete);
     let date = new Date(point['Date']);
-    date.setDate(date.getDate() + 1);
     return (
         <Stack direction='column'>
             <Stack direction="row">
