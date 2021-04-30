@@ -48,7 +48,6 @@ function MyDropzone() {
             console.log(data, tags);
             const combined = data.map((imgData, index) => {
                 let date = new Date(imgData.DateTimeOriginal ?? new Date()) || new Date();
-                date.setDate(date.getDate() + 1);
                 return {
                     Date: date,
                     'Location (Lat / Long)': `${imgData.latitude}/${imgData.longitude}`,
@@ -191,6 +190,7 @@ function TagFilter() {
     let dates = [];
     const typeFilter = [...materialFilter, ...objectFilter, ...brandFilter, ...otherFilter];
 
+    // Based on sample data.
     let brands = ["caprisun", "mcdonalds"];
     let objects = ["aluminumfoil", "bag", "bottlecap", "butt", "can", "candy", "candywrapper", "cigarette", "cigarettebutt",
         "clotheshanger", "cup", "drink", "drinkcarton", "drinkpouch", "facemask", "foil", "fruitsnacks", "hanger", "knife",
@@ -317,10 +317,12 @@ function TagFilter() {
 }
 
 function getToday() {
+    // Get date.
     let currentYear = new Date().getFullYear();
     let currentMonth = new Date().getMonth() + 1;
     let currentDay = new Date().getDate();
 
+    // Need a 0 if value < 10.
     if(currentMonth < 10) {
         currentMonth = "0" + currentMonth;
     }
@@ -340,12 +342,14 @@ function SliderControl() {
         <div>
             <label for="first">From: </label>
             <input type="date" id="first" max={getToday()} onChange={function() {
+                // Get date.
                 let minValue = document.getElementById("first").value;
                 let minDate = new Date(minValue);
                 let minYear = minDate.getFullYear();
                 let minMonth = minDate.getMonth() + 1;
                 let minDay = minDate.getDate() + 1;
 
+                // Need a 0 if value < 10.
                 if(minMonth < 10) {
                     minMonth = "0" + minMonth;
                 }
@@ -353,17 +357,20 @@ function SliderControl() {
                     minDay = "0" + minDay;
                 }
 
+                // Set minimum value for last date.
                 document.getElementById("last").min = minYear + "-" + minMonth + "-" + minDay;
             }}/>
             <br/>
             <label for="last">To: </label>
             <input type="date" id="last" max={getToday()} onChange={function() {
+                // Get date.
                 let maxValue = document.getElementById("last").value;
                 let maxDate = new Date(maxValue);
                 let maxYear = maxDate.getFullYear();
                 let maxMonth = maxDate.getMonth() + 1;
                 let maxDay = maxDate.getDate() + 1;
 
+                // Need a 0 if value < 10.
                 if(maxMonth < 10) {
                     maxMonth = "0" + maxMonth;
                 }
@@ -371,15 +378,18 @@ function SliderControl() {
                     maxDay = "0" + maxDay;
                 }
 
+                // Set maximum value for first date.
                 document.getElementById("first").max = maxYear + "-" + maxMonth + "-" + maxDay;
             }}/>
             <br/>
             <button onClick={function() {
+                // Get dates.
                 var first = document.getElementById("first").value;
                 var last = document.getElementById("last").value;
                 var date1 = new Date(first);
                 var date2 = new Date(last);
 
+                // Need two dates and a logical range.
                 if(date1.toDateString().localeCompare("Invalid Date") == 0 ||
                     date2.toDateString().localeCompare("Invalid Date") == 0 || date1.getTime() > date2.getTime()) {
                     return;
@@ -389,15 +399,19 @@ function SliderControl() {
                 console.log(date2.toDateString());
 
                 var newDateFilter = [];
+
+                // Add first date to filter.
                 newDateFilter.push(date1.toDateString());
                 date1.setDate(date1.getDate() + 1);
 
+                // Add dates between first and last dates.
                 while(date1.getTime() < date2.getTime()) {
                     var dateToAdd = date1.toDateString();
                     newDateFilter.push(dateToAdd);
                     date1.setDate(date1.getDate() + 1);
                 }
 
+                // Add second date and set filter.
                 newDateFilter.push(date2.toDateString());
                 console.log(newDateFilter);
                 setDateFilter(newDateFilter);
