@@ -401,10 +401,14 @@ function SliderControl() {
 
                 var newDateFilter = [];
 
-                // Add first date to filter.
                 // In PST, the dates that were selected were one day ahead of what the console showed.
-                date1.setDate(date1.getDate() + 1);
-                date2.setDate(date2.getDate() + 1);
+                if(date1.toString().includes("GMT-")) {
+                    date1.setDate(date1.getDate() + 1);
+                }
+                if(date2.toString().includes("GMT-")) {
+                    date2.setDate(date2.getDate() + 1);
+                }
+
                 newDateFilter.push(date1.toDateString());
                 date1.setDate(date1.getDate() + 1);
 
