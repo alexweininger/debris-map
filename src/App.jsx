@@ -392,6 +392,7 @@ function SliderControl() {
                 // Need two dates and a logical range.
                 if(date1.toDateString().localeCompare("Invalid Date") == 0 ||
                     date2.toDateString().localeCompare("Invalid Date") == 0 || date1.getTime() > date2.getTime()) {
+                    alert("Not enough dates, or range is invalid.")
                     return;
                 }
 
@@ -400,7 +401,14 @@ function SliderControl() {
 
                 var newDateFilter = [];
 
-                // Add first date to filter.
+                // In PST, the dates that were selected were one day ahead of what the console showed.
+                if(date1.toString().includes("GMT-")) {
+                    date1.setDate(date1.getDate() + 1);
+                }
+                if(date2.toString().includes("GMT-")) {
+                    date2.setDate(date2.getDate() + 1);
+                }
+
                 newDateFilter.push(date1.toDateString());
                 date1.setDate(date1.getDate() + 1);
 
